@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 # @Time : 2024/11/11 11:32 上午
 # @Author : senwang
-# @Email : tengbaoqiang.tbq@alibaba-inc.com
+# @Email : 
 # @File : inference_onnx.py
-# @Project : intime_intelligent_election
+# @Project : 
 # @Software: PyCharm
 
 from ultralytics import YOLO
