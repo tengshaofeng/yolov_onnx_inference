@@ -1,0 +1,2 @@
+# yolov_onnx_inference
+yolo各个版本（只测试了yolov10x和yolo11x）的onnx推理代码
