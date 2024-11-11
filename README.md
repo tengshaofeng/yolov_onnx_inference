@@ -1,2 +1,14 @@
 # yolov_onnx_inference
 yolo各个版本（只测试了yolov10x和yolo11x）的onnx推理代码
+
+# 步骤一：
+## 下载yolo各个版本的pt模型
+yolo11 : wget https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11{x|l|m|s|n}.pt
+yolov10: wget https://github.com/THU-MIG/yolov10/releases/download/v1.1/yolov10{n/s/m/b/l/x}.pt
+
+# 步骤二：
+## Export the model to ONNX format
+path = model.export(format="onnx", half=True)
+
+# 步骤三：
+python inference_onnx.py
