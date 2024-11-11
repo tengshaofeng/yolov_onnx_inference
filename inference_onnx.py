@@ -3,21 +3,21 @@
 # @Author : senwang
 # @Email : 
 # @File : inference_onnx.py
-# @Project : 
+# @Project : intime_intelligent_election
 # @Software: PyCharm
-
+'''
 from ultralytics import YOLO
-## 下载模型
+# 下载模型
 # yolo11 : wget https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11{x|l|m|s|n}.pt
 # yolov10: wget https://github.com/THU-MIG/yolov10/releases/download/v1.1/yolov10{n/s/m/b/l/x}.pt
-model = YOLO("yolov10x.pt")
-# results = model.predict("test.png")
+model = YOLO("yolo11x.pt")
+results = model.predict("test3.png")
 # Display the results
-# results[0].show()
+results[0].show()
 # Export the model to ONNX format
-# path = model.export(format="onnx", half=True)  # model.export(format="onnx") return path to exported model
+path = model.export(format="onnx", half=True, nms=True)  # model.export(format="onnx") return path to exported model
+'''
 
-import argparse
 import cv2
 import numpy as np
 import onnxruntime as ort
@@ -41,7 +41,7 @@ CLASS_NAMES = {0: 'person', 1: 'bicycle', 2: 'car', 3: 'motorcycle', 4: 'airplan
 class YOLO11:
     """YOLO11 目标检测模型类，用于处理推理和可视化。"""
 
-    def __init__(self, onnx_model, input_image, confidence_thres, iou_thres):
+    def __init__(self, onnx_model, confidence_thres, iou_thres):
         """
         初始化 YOLO11 类的实例。
         参数：
@@ -51,7 +51,6 @@ class YOLO11:
             iou_thres: 非极大值抑制（NMS）的 IoU（交并比）阈值。
         """
         self.onnx_model = onnx_model
-        self.input_image = input_image
         self.confidence_thres = confidence_thres
         self.iou_thres = iou_thres
 
@@ -139,20 +138,20 @@ class YOLO11:
 
         # 计算需要的填充
         dw, dh = new_shape[1] - new_unpad[0], new_shape[0] - new_unpad[1]  # 计算填充的尺寸
-        dw /= 2  # padding 均分
-        dh /= 2
+        dw_left = dw // 2  # padding 均分
+        dh_top = dh // 2
 
         # 缩放图像
         if shape[::-1] != new_unpad:  # 如果当前图像尺寸不等于 new_unpad，则缩放
             img = cv2.resize(img, new_unpad, interpolation=cv2.INTER_LINEAR)
 
         # 为图像添加边框以达到目标尺寸
-        top, bottom = int(round(dh)), int(round(dh))
-        left, right = int(round(dw)), int(round(dw))
+        top, bottom = int(round(dh_top)), int(round(dh - dh_top))
+        left, right = int(round(dw_left)), int(round(dw - dw_left))
         img = cv2.copyMakeBorder(img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=color)
         print(f"Final letterboxed image shape: {img.shape}")
 
-        return img, (r, r), (dw, dh)
+        return img, (r, r), (dw_left, dh_top)
 
     def postprocess_yolov10x(self, input_image, output, ratio, dw, dh, draw_box=False):
         """
@@ -332,23 +331,14 @@ class YOLO11:
         else:
             res = self.postprocess_yolo11x(self.img, outputs, ratio, dw, dh, draw_box)  # 输出图像
         return res
-
-
+# 使用指定的参数创建 YOLO11 类的实例
+cur_dir = os.path.dirname(__file__)
+yolo_detection = YOLO11(onnx_model=os.path.join(cur_dir, "yolo11x.onnx"),  confidence_thres=0.4, iou_thres=0.5)  #  "yolov10x.onnx", "yolo11x.onnx"
 if __name__ == "__main__":
-    # 创建参数解析器以处理命令行参数
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, default="yolov10x.onnx", help="输入你的 ONNX 模型路径。")
-    parser.add_argument("--img", type=str, default=r"test.png", help="输入图像的路径。")
-    parser.add_argument("--conf-thres", type=float, default=0.5, help="置信度阈值")
-    parser.add_argument("--iou-thres", type=float, default=0.45, help="NMS IoU 阈值")
-    args = parser.parse_args()
-    img_input = cv2.imread('test2.png')
-    # 使用指定的参数创建 YOLO11 类的实例
-    detection = YOLO11(args.model, args.img, args.conf_thres, args.iou_thres)
-
+    img_input = cv2.imread('test.png')
     # 执行目标检测并获取输出图像
     tic = time.time()
-    class_ids, scores, boxes, output_image = detection.predict(img_input, draw_box=True)
+    class_ids, scores, boxes, output_image = yolo_detection.predict(img_input, draw_box=True)
     print('take time:{}'.format(time.time()-tic))
     # 保存输出图像到文件
     cv2.imwrite("det_result_picture.jpg", output_image)
