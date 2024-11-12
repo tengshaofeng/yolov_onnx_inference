@@ -13,6 +13,6 @@ wget https://github.com/THU-MIG/yolov10/releases/download/v1.1/yolov10{n/s/m/b/l
 # 步骤二：
 ## Export the model to ONNX format
 path = model.export(format="onnx", half=True)
-
+# gpu机器下跑model.export(format="onnx", half=True, device=0),onnx模型才会小于等于pt模型
 # 步骤三：
 python inference_onnx.py
