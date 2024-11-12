@@ -19,7 +19,7 @@ results[0].show()
 path = model.export(format="onnx", half=True)  # model.export(format="onnx") return path to exported model
 ## 在cpu环境下导出不了half即float16的模型，因为float16在cpu下跑的比float32慢。在gpu环境下可以导出half的模型，但是用cpu运行比float32慢一倍（仅自己测试的结果）
 ## 有时候gpu机器上用不了gpu跑，可能同时存在cpu和gpu的onnxruntime版本。解决如下：pip uninstall onnxruntime, pip uninstall onnxruntime-gpu, pip install onnxruntime-gpu
-
+## 用half模型运行的时候，输入数据记得改成.astype(np.float16)
 '''
 
 import cv2
