@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 # @Time : 2024/11/11 11:32 上午
 # @Author : senwang
-# @Email : 
+# @Email :
 # @File : inference_onnx.py
 # @Project : intime_intelligent_election
 # @Software: PyCharm
+
 '''
 from ultralytics import YOLO
 # 下载模型
@@ -21,6 +22,7 @@ path = model.export(format="onnx", half=True)  # model.export(format="onnx") ret
 ## 有时候gpu机器上用不了gpu跑，可能同时存在cpu和gpu的onnxruntime版本。解决如下：pip uninstall onnxruntime, pip uninstall onnxruntime-gpu, pip install onnxruntime-gpu
 ## 用half模型运行的时候，输入数据记得改成.astype(np.float16)
 '''
+
 
 import cv2
 import numpy as np
@@ -157,7 +159,7 @@ class YOLO11:
 
         return img, (r, r), (dw_left, dh_top)
 
-    def postprocess_yolov10x(self, input_image, output, ratio, dw, dh, draw_box=False):
+    def postprocess_yolov10x(self, input_image, output, ratio, dw, dh, draw_box=False, class_id=None):
         """
         对yolov10x模型输出进行后处理，以提取边界框、分数和类别 ID。
         参数：
@@ -188,7 +190,11 @@ class YOLO11:
 
         class_ids = filtered_outputs[:, -1] # 筛选后计算类别ID
         boxes = filtered_outputs[:, :4]  # 获取框位置
-
+        if class_id is not None:
+            mask = class_ids == class_id
+            scores = scores[mask]
+            class_ids = class_ids[mask]
+            boxes = boxes[mask]
         # 将框调整到原始图像尺寸，考虑缩放和填充
         boxes[:, 0] = (boxes[:, 0] - dw) / ratio[0]  # x0
         boxes[:, 1] = (boxes[:, 1] - dh) / ratio[1]  # y0
@@ -218,12 +224,13 @@ class YOLO11:
                 self.draw_detections(input_image, box, score, class_id)
         return class_ids, scores, boxes, input_image
 
-    def postprocess_yolo11x(self, input_image, output, ratio, dw, dh, draw_box=False):
+    def postprocess_yolo11x(self, input_image, output, ratio, dw, dh, draw_box=False, class_id=None):
         """
         对yolo11x模型输出进行后处理，以提取边界框、分数和类别 ID。
         参数：
             input_image (numpy.ndarray): 输入图像。
             output (numpy.ndarray): 模型的输出。
+            class_id: 默认None将各个存在的类都输出，若指定特定的类别如class_id=0则只输出人的框，这种优点是不会因为nms被过滤掉
         返回：
             numpy.ndarray: 包含检测结果的输入图像。
         """
@@ -253,7 +260,11 @@ class YOLO11:
 
         class_ids = np.argmax(filtered_outputs[:, 4:], axis=1)  # 筛选后计算类别ID
         boxes = filtered_outputs[:, :4]  # 获取框位置
-
+        if class_id is not None:
+            mask = class_ids == class_id
+            scores = scores[mask]
+            class_ids = class_ids[mask]
+            boxes = boxes[mask]
         # 将框调整到原始图像尺寸，考虑缩放和填充
         boxes[:, 0] = (boxes[:, 0] - dw) / ratio[0]  # x
         boxes[:, 1] = (boxes[:, 1] - dh) / ratio[1]  # y
@@ -322,7 +333,7 @@ class YOLO11:
         # 在图像上绘制标签文本
         cv2.putText(img, label, (label_x, label_y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
 
-    def predict(self, img_input, draw_box=False):
+    def predict(self, img_input, draw_box=False, class_id=None):
         # 预处理图像数据，确保使用模型要求的尺寸 (640x640)
         img_data, ratio, dw, dh = self.preprocess(img_input)
 
@@ -331,18 +342,18 @@ class YOLO11:
 
         # 对输出进行后处理以获取输出图像
         if '10' in self.onnx_model:
-            res = self.postprocess_yolov10x(self.img, outputs, ratio, dw, dh, draw_box)  # 输出图像
+            res = self.postprocess_yolov10x(self.img, outputs, ratio, dw, dh, draw_box, class_id=class_id)  # 输出图像
         else:
-            res = self.postprocess_yolo11x(self.img, outputs, ratio, dw, dh, draw_box)  # 输出图像
+            res = self.postprocess_yolo11x(self.img, outputs, ratio, dw, dh, draw_box, class_id=class_id)  # 输出图像
         return res
 # 使用指定的参数创建 YOLO11 类的实例
 cur_dir = os.path.dirname(__file__)
-yolo_detection = YOLO11(onnx_model=os.path.join(cur_dir, "yolo11x.onnx"),  confidence_thres=0.4, iou_thres=0.5)  #  "yolov10x.onnx", "yolo11x.onnx"
+yolo_detection = YOLO11(onnx_model=os.path.join(cur_dir, "yolo11x_float32.onnx"),  confidence_thres=0.2, iou_thres=0.5)  #  "yolov10x.onnx", "yolo11x.onnx"
 if __name__ == "__main__":
     img_input = cv2.imread('test.png')
     # 执行目标检测并获取输出图像
     tic = time.time()
-    class_ids, scores, boxes, output_image = yolo_detection.predict(img_input, draw_box=True)
+    class_ids, scores, boxes, output_image = yolo_detection.predict(img_input, draw_box=True, class_id=0)
     print('take time:{}'.format(time.time()-tic))
     # 保存输出图像到文件
     cv2.imwrite("det_result_picture.jpg", output_image)
