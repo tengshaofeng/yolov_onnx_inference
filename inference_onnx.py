@@ -186,7 +186,7 @@ class YOLO11:
         scores = max_scores[mask]
 
         if filtered_outputs.size == 0:
-            return input_image  # 如果没有合格的检测框，直接返回输入图像
+            return boxes, scores, class_ids, input_image  # 如果没有合格的检测框，直接返回输入图像
 
         class_ids = filtered_outputs[:, -1] # 筛选后计算类别ID
         boxes = filtered_outputs[:, :4]  # 获取框位置
@@ -256,7 +256,7 @@ class YOLO11:
         scores = max_scores[mask]
 
         if filtered_outputs.size == 0:
-            return input_image  # 如果没有合格的检测框，直接返回输入图像
+            return boxes, scores, class_ids, input_image  # 如果没有合格的检测框，直接返回输入图像
 
         class_ids = np.argmax(filtered_outputs[:, 4:], axis=1)  # 筛选后计算类别ID
         boxes = filtered_outputs[:, :4]  # 获取框位置
