@@ -17,3 +17,5 @@ path = model.export(format="onnx", half=True)
 gpu机器下跑model.export(format="onnx", half=True, device=0),onnx模型才会小于等于pt模型
 # 步骤三：
 python inference_onnx.py
+
+参考：https://github.com/ultralytics/ultralytics
