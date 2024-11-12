@@ -16,7 +16,8 @@ results = model.predict("test3.png")
 # Display the results
 results[0].show()
 # Export the model to ONNX format
-path = model.export(format="onnx", half=True, nms=True)  # model.export(format="onnx") return path to exported model
+path = model.export(format="onnx", half=True)  # model.export(format="onnx") return path to exported model
+## 在cpu环境下导出不了half即float16的模型，因为float16在cpu下跑的比float32慢。在gpu环境下可以导出half的模型，但是用cpu运行比float32慢一倍（仅自己测试的结果）
 '''
 
 import cv2
